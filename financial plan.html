@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Financial Plan | Smart Expense Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    body {
+      display: flex;
+      height: 100vh;
+      background: #f5f7fb;
+      color: #333;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 230px;
+      background: #4facfe;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      padding: 1rem;
+      border-top-right-radius: 20px;
+      border-bottom-right-radius: 20px;
+    }
+
+    .sidebar h2 {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .menu-item {
+      padding: 0.8rem 1rem;
+      margin: 0.3rem 0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .menu-item:hover,
+    .menu-item.active {
+      background: #00c3ff;
+    }
+
+    /* Main */
+    .main-content {
+      flex: 1;
+      padding: 2rem;
+      overflow-y: auto;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 1rem;
+      color: #333;
+    }
+
+    .input-section {
+      background: #fff;
+      padding: 1.2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      margin-bottom: 2rem;
+      max-width: 900px;
+      margin-inline: auto;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    input, select, button {
+      padding: 0.7rem;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+    }
+
+    button {
+      background: #4facfe;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background: #00c3ff;
+    }
+
+    .charts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2rem;
+      justify-content: center;
+    }
+
+    canvas {
+      max-width: 400px;
+    }
+
+    .tips {
+      background: #fff;
+      margin-top: 2rem;
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      max-width: 900px;
+      margin-inline: auto;
+    }
+
+    .tip-item {
+      background: #e8f4ff;
+      border-left: 5px solid #4facfe;
+      padding: 0.8rem;
+      margin: 0.5rem 0;
+      border-radius: 8px;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        flex-direction: row;
+        width: 100%;
+        justify-content: space-around;
+        border-radius: 0;
+      }
+
+      canvas {
+        width: 90%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h2>Menu</h2>
+   <div class="menu-item"> <a href="home.html" style="text-decoration: none;">📊 Expense Charts</a></div>
+    <div class="menu-item"><a href="family.html" style="text-decoration: none;">👨‍👩‍👧‍👦 Family</a></div>
+    <div class="menu-item"><a href="financial plan.html" style="text-decoration: none;">💰 Financial Plan</a></div>
+    <div class="menu-item"><a href="settings.html" style="text-decoration: none;">⚙️ Settings</a></div>
+  </div>
+
+  <!-- Main -->
+  <div class="main-content">
+    <h1>Smart Financial Planner</h1>
+
+    <!-- Input Section -->
+    <div class="input-section">
+      <h3 style="text-align:center;margin-bottom:1rem;color:#4facfe;">Compare & Analyze Expenses</h3>
+      <div class="input-row">
+        <select id="category">
+          <option>Parlour</option>
+          <option>Gym</option>
+          <option>Sports</option>
+          <option>Shopping</option>
+          <option>Health</option>
+          <option>Travel</option>
+          <option>Entertainment</option>
+          <option>Vehicle</option>
+          <option>Misc</option>
+        </select>
+        <input type="number" id="prev-month" placeholder="Prev Month (₹)" min="0">
+        <input type="number" id="curr-month" placeholder="Current Month (₹)" min="0">
+        <button id="add-expense">Add</button>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts">
+      <div>
+        <h3 style="text-align:center;color:#4facfe;">Previous Month</h3>
+        <canvas id="prevChart"></canvas>
+      </div>
+      <div>
+        <h3 style="text-align:center;color:#4facfe;">Current Month</h3>
+        <canvas id="currChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Financial Tips -->
+    <div class="tips">
+      <h2 style="text-align:center;color:#4facfe;">Financial Insights & Tips</h2>
+      <div id="tips-container"></div>
+    </div>
+  </div>
+
+  <script>
+    const categories = ['Parlour','Gym','Sports','Shopping','Health','Travel','Entertainment','Vehicle','Misc'];
+    let prevData = JSON.parse(localStorage.getItem('prevMonth')) || Object.fromEntries(categories.map(c=>[c,0]));
+    let currData = JSON.parse(localStorage.getItem('currMonth')) || Object.fromEntries(categories.map(c=>[c,0]));
+
+    const prevCtx = document.getElementById('prevChart').getContext('2d');
+    const currCtx = document.getElementById('currChart').getContext('2d');
+
+    const colorSet = ['#845ec2','#ff9671','#ffc75f','#f9f871','#00c9a7','#4facfe','#fa709a','#0081cf','#b39cd0'];
+
+    const prevChart = new Chart(prevCtx, {
+      type: 'pie',
+      data: { labels: categories, datasets: [{ data: Object.values(prevData), backgroundColor: colorSet }] },
+      options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    });
+
+    const currChart = new Chart(currCtx, {
+      type: 'pie',
+      data: { labels: categories, datasets: [{ data: Object.values(currData), backgroundColor: colorSet }] },
+      options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    });
+
+    function updateCharts(){
+      prevChart.data.datasets[0].data = Object.values(prevData);
+      currChart.data.datasets[0].data = Object.values(currData);
+      prevChart.update(); currChart.update();
+      localStorage.setItem('prevMonth', JSON.stringify(prevData));
+      localStorage.setItem('currMonth', JSON.stringify(currData));
+      generateTips();
+    }
+
+    document.getElementById('add-expense').onclick = ()=>{
+      const cat = document.getElementById('category').value;
+      const prev = parseFloat(document.getElementById('prev-month').value) || 0;
+      const curr = parseFloat(document.getElementById('curr-month').value) || 0;
+      prevData[cat] = prev;
+      currData[cat] = curr;
+      updateCharts();
+    };
+
+    function generateTips(){
+      const tipsContainer = document.getElementById('tips-container');
+      tipsContainer.innerHTML = '';
+      const totalCurr = Object.values(currData).reduce((a,b)=>a+b,0);
+      const totalPrev = Object.values(prevData).reduce((a,b)=>a+b,0);
+
+      categories.forEach(c=>{
+        const curr = currData[c];
+        const prev = prevData[c];
+        const percent = totalCurr ? ((curr/totalCurr)*100).toFixed(1) : 0;
+        let msg = '';
+        if(curr > prev) msg = `⚠️ You spent more on ${c} this month (+₹${curr-prev}). Try to control it.`;
+        else if(curr < prev && curr > 0) msg = `✅ Good job! You reduced spending on ${c} by ₹${prev-curr}.`;
+        else if(curr===0 && prev>0) msg = `💡 You avoided ${c} expenses completely this month — nice discipline!`;
+        if(percent > 25) msg += ` (${percent}% of total expenses — high priority to reduce!)`;
+        if(msg) tipsContainer.innerHTML += `<div class="tip-item">${msg}</div>`;
+      });
+
+      // General summary tip
+      const diff = totalCurr - totalPrev;
+      if(diff > 0)
+        tipsContainer.innerHTML += `<div class="tip-item">📉 Total expenses increased by ₹${diff}. Try setting a saving target for next month.</div>`;
+      else if(diff < 0)
+        tipsContainer.innerHTML += `<div class="tip-item">💰 You saved ₹${Math.abs(diff)} compared to last month. Keep up the good budgeting!</div>`;
+    }
+
+    generateTips();
+  </script>
+</body>
+</html>

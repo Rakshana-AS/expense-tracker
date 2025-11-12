@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Expense Tracker | Login</title>
+  <style>
+    /* Basic reset and styling */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: linear-gradient(135deg, #4facfe, #00f2fe);
+    }
+
+    .container {
+      background: #fff;
+      padding: 2rem;
+      border-radius: 1.5rem;
+      box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+      width: 90%;
+      max-width: 400px;
+      transition: all 0.3s ease;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 1rem;
+      color: #333;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+    }
+
+    label {
+      margin-bottom: 0.3rem;
+      font-weight: 600;
+      color: #555;
+    }
+
+    input {
+      padding: 0.8rem;
+      margin-bottom: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+
+    button {
+      background: #4facfe;
+      color: #fff;
+      border: none;
+      padding: 0.8rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background: #00c3ff;
+    }
+
+    .toggle {
+      text-align: center;
+      margin-top: 1rem;
+      color: #555;
+    }
+
+    .toggle span {
+      color: #4facfe;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        padding: 1.5rem;
+      }
+      input, button {
+        font-size: 0.9rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="form-container">
+    <!-- Login Form -->
+    <div id="login-form">
+      <h2>Login</h2>
+      <form id="login">
+        <label for="login-user">User ID</label>
+        <input type="text" id="login-user" placeholder="Enter User ID" required>
+
+        <label for="login-pass">Password</label>
+        <input type="password" id="login-pass" placeholder="Enter Password" required>
+
+        <button type="submit">Login</button>
+      </form>
+      <div class="toggle">
+        New user? <span id="show-register">Register</span>
+      </div>
+    </div>
+
+    <!-- Registration Form -->
+    <div id="register-form" style="display: none;">
+      <h2>Register</h2>
+      <form id="register">
+        <label for="reg-user">User ID</label>
+        <input type="text" id="reg-user" placeholder="Create User ID" required>
+
+        <label for="reg-pass">Password</label>
+        <input type="password" id="reg-pass" placeholder="Create Password" required>
+
+        <label for="reg-confirm">Confirm Password</label>
+        <input type="password" id="reg-confirm" placeholder="Confirm Password" required>
+
+        <button type="submit">Register</button>
+      </form>
+      <div class="toggle">
+        Already have an account? <span id="show-login">Login</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // DOM elements
+    const loginForm = document.getElementById("login-form");
+    const registerForm = document.getElementById("register-form");
+    const showRegister = document.getElementById("show-register");
+    const showLogin = document.getElementById("show-login");
+
+    // Toggle between login and register
+    showRegister.onclick = () => {
+      loginForm.style.display = "none";
+      registerForm.style.display = "block";
+    };
+
+    showLogin.onclick = () => {
+      registerForm.style.display = "none";
+      loginForm.style.display = "block";
+    };
+
+    // Registration logic
+    document.getElementById("register").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const user = document.getElementById("reg-user").value.trim();
+      const pass = document.getElementById("reg-pass").value;
+      const confirm = document.getElementById("reg-confirm").value;
+
+      if (pass !== confirm) {
+        alert("Passwords do not match!");
+        return;
+      }
+
+      if (localStorage.getItem(user)) {
+        alert("User ID already exists!");
+        return;
+      }
+
+      // Save to localStorage
+      localStorage.setItem(user, pass);
+      alert("Registration successful! Please login.");
+
+      // Go back to login form
+      registerForm.style.display = "none";
+      loginForm.style.display = "block";
+    });
+
+    // Login logic
+    document.getElementById("login").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const user = document.getElementById("login-user").value.trim();
+      const pass = document.getElementById("login-pass").value;
+
+      const storedPass = localStorage.getItem(user);
+      if (storedPass && storedPass === pass) {
+        alert("Login successful!");
+        window.location.href = "home.html"; // redirect after login
+      } else {
+        alert("Invalid User ID or Password!");
+      }
+    });
+  </script>
+</body>
+</html>

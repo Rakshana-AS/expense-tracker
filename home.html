@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Expense Tracker Dashboard</title>
+
+  <!-- Chart.js + datalabels -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+
+  <style>
+    * { box-sizing: border-box; font-family: 'Poppins',sans-serif; margin:0; padding:0; }
+    body { display:flex; min-height:100vh; background:#f5f7fb; color:#333; }
+
+    /* Sidebar */
+    .sidebar {
+      width:220px; background:#4facfe; color:#fff; padding:1rem; border-top-right-radius:18px; border-bottom-right-radius:18px;
+      display:flex; flex-direction:column;
+    }
+    .sidebar h2{ text-align:center; margin-bottom:1.25rem; }
+    .menu-item{ padding:0.7rem 0.8rem; margin:0.3rem 0; border-radius:8px; cursor:pointer; }
+    .menu-item.active, .menu-item:hover{ background:#00c3ff; }
+
+    /* Main */
+    .main { flex:1; padding:1.6rem; display:flex; flex-direction:column; gap:1rem; }
+    h1{ color:#4facfe; text-align:center; margin-bottom:0.5rem; }
+
+    /* Summary row */
+    .summary-row {
+      display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; align-items:center;
+    }
+    .card {
+      background:#fff; padding:0.9rem 1rem; border-radius:10px; box-shadow:0 6px 14px rgba(0,0,0,0.06);
+      min-width:170px; text-align:center;
+    }
+    .card h4{ color:#777; margin-bottom:0.4rem; font-weight:600; }
+    .card p{ font-size:1.05rem; font-weight:700; margin-top:0.2rem; }
+
+    .controls { display:flex; gap:0.6rem; justify-content:center; align-items:center; flex-wrap:wrap; margin-top:0.4rem; }
+
+    input[type="number"], select { padding:0.55rem 0.6rem; border-radius:8px; border:1px solid #ccc; font-size:1rem; }
+    button { padding:0.55rem 0.8rem; border-radius:8px; border:none; background:#4facfe; color:#fff; cursor:pointer; }
+    button.reset { background:#ff5f5f; }
+    button.small { padding:0.45rem 0.6rem; font-size:0.95rem; }
+
+    /* dashboard layout */
+    .dashboard { display:flex; gap:1.5rem; justify-content:center; align-items:flex-start; flex-wrap:wrap; margin-top:0.8rem; }
+    .chart-box{ flex:1; min-width:300px; max-width:520px; }
+    .table-box{ flex:1; min-width:280px; max-width:520px; background:#fff; padding:0.8rem; border-radius:10px; box-shadow:0 6px 14px rgba(0,0,0,0.06); }
+
+    .table-box h3{ text-align:center; color:#4facfe; margin-bottom:0.6rem; }
+    table{ width:100%; border-collapse:collapse; font-size:0.95rem; }
+    th, td{ padding:0.5rem; text-align:center; border-bottom:1px solid #eee; }
+    th{ background:#f0f8ff; color:#333; }
+    .total-row{ font-weight:700; background:#eaf6ff; }
+
+    .note { font-size:0.9rem; color:#c0392b; margin-top:0.6rem; text-align:center; }
+
+    @media (max-width:900px){
+      .sidebar{ width:100%; display:flex; flex-direction:row; justify-content:space-around; border-radius:0; }
+      body { flex-direction:column; }
+      .dashboard{ flex-direction:column; align-items:center; }
+      .card{ min-width:140px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h2>Menu</h2>
+    <div class="menu-item"> <a href="home.html" style="text-decoration: none;">📊 Expense Charts</a></div>
+    <div class="menu-item"><a href="family.html" style="text-decoration: none;">👨‍👩‍👧‍👦 Family</a></div>
+    <div class="menu-item"><a href="financial plan.html" style="text-decoration: none;">💰 Financial Plan</a></div>
+    <div class="menu-item"><a href="settings.html" style="text-decoration: none;">⚙️ Settings</a></div>
+  </div>
+
+  <div class="main">
+    <h1>Expense Tracker</h1>
+
+    <!-- summary and budget controls -->
+    <div class="summary-row">
+      <div class="card">
+        <h4>Total Budget</h4>
+        <p id="budget-display">₹0</p>
+        <div class="controls" style="margin-top:0.6rem;">
+          <input id="budget-input" type="number" placeholder="Enter ₹" min="0" />
+          <button id="set-budget" class="small">Set</button>
+          <button id="clear-budget" class="small reset">Clear</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4>Total Spent</h4>
+        <p id="spent-display">₹0</p>
+      </div>
+
+      <div class="card">
+        <h4>Remaining</h4>
+        <p id="remaining-display">₹0</p>
+      </div>
+    </div>
+
+    <!-- add expense controls -->
+    <div style="text-align:center;">
+      <div class="controls">
+        <select id="category">
+          <option value="Personal">Personal</option>
+          <option value="Entertainment">Entertainment</option>
+          <option value="Shopping">Shopping</option>
+          <option value="Travel">Travel</option>
+          <option value="Family">Family</option>
+          <option value="Misc">Misc</option>
+          <option value="Savings">Savings</option>
+        </select>
+
+        <input id="amount" type="number" placeholder="Amount (₹)" min="1" />
+        <button id="add-btn">Add Expense</button>
+        <button id="reset-expenses" class="reset">Reset Expenses</button>
+      </div>
+    </div>
+
+    <!-- chart + table -->
+    <div class="dashboard">
+      <div class="chart-box">
+        <canvas id="expenseChart"></canvas>
+      </div>
+
+      <div class="table-box">
+        <h3>Expense Details</h3>
+        <table id="expenseTable">
+          <thead>
+            <tr><th>Category</th><th>Amount (₹)</th><th>% of Total</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+
+        <div style="margin-top:0.6rem; display:flex; gap:0.5rem; justify-content:center; align-items:center;">
+          <button id="export-csv" class="small">Export CSV</button>
+        </div>
+
+        <div id="budget-note" class="note" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // categories & defaults
+    const categories = ['Personal','Entertainment','Shopping','Travel','Family','Misc','Savings'];
+
+    // load from localStorage
+    let expenses = JSON.parse(localStorage.getItem('expenses')) || Object.fromEntries(categories.map(c => [c, 0]));
+    let totalBudget = parseFloat(localStorage.getItem('totalBudget')) || 0;
+
+    // DOM
+    const budgetDisplay = document.getElementById('budget-display');
+    const spentDisplay  = document.getElementById('spent-display');
+    const remainingDisplay = document.getElementById('remaining-display');
+    const budgetInput = document.getElementById('budget-input');
+    const setBudgetBtn = document.getElementById('set-budget');
+    const clearBudgetBtn = document.getElementById('clear-budget');
+
+    // initialize chart
+    const ctx = document.getElementById('expenseChart').getContext('2d');
+    const colorSet = ['#4facfe','#00c3ff','#43e97b','#fa709a','#ffd36b','#845ec2','#f9f871'];
+    const expenseChart = new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: categories,
+        datasets: [{ data: Object.values(expenses), backgroundColor: colorSet }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          datalabels: {
+            formatter: (value, ctx) => {
+              const data = ctx.chart.data.datasets[0].data;
+              const total = data.reduce((a,b)=>a+b,0);
+              return total ? ( (value/total)*100 ).toFixed(1) + '%' : '';
+            },
+            color:'#fff', font:{weight:'600', size:12}
+          },
+          legend:{ position:'bottom' },
+          title:{ display:true, text:'Expense Distribution (%)' }
+        }
+      },
+      plugins: [ChartDataLabels]
+    });
+
+    // helpers
+    function saveState(){
+      localStorage.setItem('expenses', JSON.stringify(expenses));
+      localStorage.setItem('totalBudget', totalBudget);
+    }
+
+    function computeTotals(){
+      const totalSpent = Object.values(expenses).reduce((a,b)=>a+b,0);
+      const remaining = Math.max(totalBudget - totalSpent, 0);
+      return { totalSpent, remaining };
+    }
+
+    function updateSummaryUI(){
+      const { totalSpent, remaining } = computeTotals();
+      budgetDisplay.textContent = `₹${totalBudget}`;
+      spentDisplay.textContent  = `₹${totalSpent}`;
+      remainingDisplay.textContent = `₹${remaining}`;
+      // budget note if budget exceeded or close
+      const noteEl = document.getElementById('budget-note');
+      if(totalBudget && totalSpent > totalBudget){
+        noteEl.style.display = 'block';
+        noteEl.textContent = `⚠️ Budget exceeded by ₹${(totalSpent - totalBudget).toFixed(2)}.`;
+      } else if(totalBudget && totalSpent > totalBudget*0.9){
+        noteEl.style.display = 'block';
+        noteEl.textContent = `⚠️ You're close to the budget (>${Math.round(100*totalSpent/totalBudget)}%).`;
+      } else {
+        noteEl.style.display = 'none';
+      }
+    }
+
+    function updateChartAndTable(){
+      // chart
+      expenseChart.data.datasets[0].data = Object.values(expenses);
+      expenseChart.update();
+      // table
+      const tbody = document.querySelector('#expenseTable tbody');
+      tbody.innerHTML = '';
+      const total = Object.values(expenses).reduce((a,b)=>a+b,0);
+      categories.forEach(cat=>{
+        const amt = expenses[cat] || 0;
+        const pct = total ? ((amt/total)*100).toFixed(1) : '0.0';
+        const row = `<tr><td>${cat}</td><td>₹${amt}</td><td>${pct}%</td></tr>`;
+        tbody.insertAdjacentHTML('beforeend', row);
+      });
+      tbody.insertAdjacentHTML('beforeend', `<tr class="total-row"><td>Total</td><td>₹${total}</td><td>100%</td></tr>`);
+      updateSummaryUI();
+      saveState();
+    }
+
+    // initial render
+    updateChartAndTable();
+
+    // add expense
+    document.getElementById('add-btn').addEventListener('click', ()=>{
+      const cat = document.getElementById('category').value;
+      const amt = parseFloat(document.getElementById('amount').value);
+      if(!amt || amt <= 0){ alert('Please enter a valid amount.'); return; }
+      expenses[cat] = (expenses[cat] || 0) + amt;
+      document.getElementById('amount').value = '';
+      updateChartAndTable();
+    });
+
+    // reset all expenses
+    document.getElementById('reset-expenses').addEventListener('click', ()=>{
+      if(!confirm('Reset all expenses?')) return;
+      expenses = Object.fromEntries(categories.map(c=>[c,0]));
+      updateChartAndTable();
+    });
+
+    // set budget
+    setBudgetBtn.addEventListener('click', ()=>{
+      const val = parseFloat(budgetInput.value);
+      if(isNaN(val) || val < 0){ alert('Enter valid budget value'); return; }
+      totalBudget = val;
+      budgetInput.value = '';
+      updateChartAndTable();
+    });
+
+    // clear budget
+    clearBudgetBtn.addEventListener('click', ()=>{
+      if(!confirm('Clear total budget (does not delete expenses)?')) return;
+      totalBudget = 0;
+      localStorage.removeItem('totalBudget');
+      updateChartAndTable();
+    });
+
+    // export CSV
+    document.getElementById('export-csv').addEventListener('click', ()=>{
+      const total = Object.values(expenses).reduce((a,b)=>a+b,0);
+      let csv = 'Category,Amount,Percent\n';
+      categories.forEach(cat=>{
+        const amt = expenses[cat] || 0;
+        const pct = total ? ((amt/total)*100).toFixed(1) : 0;
+        csv += `${cat},${amt},${pct}%\n`;
+      });
+      csv += `Total,${total},100%\n`;
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'expenses.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // keep UI consistent on load
+    updateSummaryUI();
+  </script>
+</body>
+</html>

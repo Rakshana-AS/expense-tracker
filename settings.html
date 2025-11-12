@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Settings | Expense Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Poppins', sans-serif;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    body {
+      display: flex;
+      height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    /* Light and Dark themes */
+    :root {
+      --bg: #f5f7fb;
+      --card: #fff;
+      --text: #333;
+      --accent: #4facfe;
+    }
+    .dark {
+      --bg: #121212;
+      --card: #1e1e1e;
+      --text: #f5f5f5;
+      --accent: #00c3ff;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 230px;
+      background: var(--accent);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      padding: 1rem;
+      border-top-right-radius: 20px;
+      border-bottom-right-radius: 20px;
+    }
+
+    .sidebar h2 {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .menu-item {
+      padding: 0.8rem 1rem;
+      margin: 0.3rem 0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .menu-item:hover,
+    .menu-item.active {
+      background: #00c3ff;
+    }
+
+    /* Main content */
+    .main-content {
+      flex: 1;
+      padding: 2rem;
+      overflow-y: auto;
+    }
+
+    h1 {
+      text-align: center;
+      color: var(--accent);
+      margin-bottom: 1.5rem;
+    }
+
+    .settings-container {
+      background: var(--card);
+      color: var(--text);
+      padding: 2rem;
+      border-radius: 15px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      max-width: 800px;
+      margin-inline: auto;
+    }
+
+    .setting-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .setting-group h3 {
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+    }
+
+    select, input[type="color"], button {
+      padding: 0.6rem 1rem;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+      background: var(--bg);
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    button {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      margin-top: 1rem;
+    }
+
+    button:hover {
+      background: #00c3ff;
+    }
+
+    .preview {
+      margin-top: 2rem;
+      background: var(--card);
+      border-radius: 10px;
+      padding: 1rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .preview h2 {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    canvas {
+      max-width: 400px;
+      display: block;
+      margin-inline: auto;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        flex-direction: row;
+        width: 100%;
+        justify-content: space-around;
+        border-radius: 0;
+      }
+
+      .settings-container {
+        width: 90%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h2>Menu</h2>
+    <div class="menu-item"> <a href="home.html" style="text-decoration: none;">📊 Expense Charts</a></div>
+    <div class="menu-item"><a href="family.html" style="text-decoration: none;">👨‍👩‍👧‍👦 Family</a></div>
+    <div class="menu-item"><a href="financial plan.html" style="text-decoration: none;">💰 Financial Plan</a></div>
+    <div class="menu-item"><a href="settings.html" style="text-decoration: none;">⚙️ Settings</a></div>
+  </div>
+
+  <!-- Main -->
+  <div class="main-content">
+    <h1>App Settings</h1>
+
+    <div class="settings-container">
+      <!-- Theme -->
+      <div class="setting-group">
+        <h3>🌙 Theme</h3>
+        <select id="theme-select">
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+      </div>
+
+      <!-- Font Size -->
+      <div class="setting-group">
+        <h3>🔠 Font Size</h3>
+        <select id="font-select">
+          <option value="small">Small</option>
+          <option value="medium" selected>Medium</option>
+          <option value="large">Large</option>
+        </select>
+      </div>
+
+      <!-- Chart Type -->
+      <div class="setting-group">
+        <h3>📈 Chart Style</h3>
+        <select id="chart-type">
+          <option value="pie">Pie</option>
+          <option value="doughnut">Doughnut</option>
+          <option value="bar">Bar</option>
+        </select>
+      </div>
+
+      <!-- Accent Color -->
+      <div class="setting-group">
+        <h3>🎨 Accent Color</h3>
+        <input type="color" id="accent-picker" value="#4facfe" />
+      </div>
+
+      <button id="save-btn">Save Settings</button>
+
+      <!-- Live Preview -->
+      <div class="preview">
+        <h2>Preview</h2>
+        <canvas id="previewChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const colorSet = ['#845ec2','#ff9671','#ffc75f','#f9f871','#00c9a7','#4facfe','#fa709a','#0081cf','#b39cd0'];
+
+    // Load saved preferences
+    const savedSettings = JSON.parse(localStorage.getItem('userSettings')) || {
+      theme: 'light',
+      font: 'medium',
+      chartType: 'pie',
+      accent: '#4facfe'
+    };
+
+    // Apply saved settings
+    if (savedSettings.theme === 'dark') document.body.classList.add('dark');
+    document.documentElement.style.setProperty('--accent', savedSettings.accent);
+    applyFontSize(savedSettings.font);
+
+    // Get UI elements
+    const themeSelect = document.getElementById('theme-select');
+    const fontSelect = document.getElementById('font-select');
+    const chartSelect = document.getElementById('chart-type');
+    const accentPicker = document.getElementById('accent-picker');
+
+    themeSelect.value = savedSettings.theme;
+    fontSelect.value = savedSettings.font;
+    chartSelect.value = savedSettings.chartType;
+    accentPicker.value = savedSettings.accent;
+
+    // Chart initialization
+    const ctx = document.getElementById('previewChart').getContext('2d');
+    let previewChart = new Chart(ctx, {
+      type: savedSettings.chartType,
+      data: {
+        labels: ['Food', 'Travel', 'Entertainment', 'Shopping'],
+        datasets: [{
+          data: [40, 25, 20, 15],
+          backgroundColor: colorSet
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'bottom' } }
+      }
+    });
+
+    // Font size function
+    function applyFontSize(size) {
+      document.body.style.fontSize =
+        size === 'small' ? '14px' :
+        size === 'large' ? '18px' : '16px';
+    }
+
+    // Live update preview when chart type changes
+    chartSelect.addEventListener('change', () => {
+      const newType = chartSelect.value;
+      previewChart.destroy();
+      previewChart = new Chart(ctx, {
+        type: newType,
+        data: {
+          labels: ['Food', 'Travel', 'Entertainment', 'Shopping'],
+          datasets: [{
+            data: [40, 25, 20, 15],
+            backgroundColor: colorSet
+          }]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+      });
+    });
+
+    // Save settings
+    document.getElementById('save-btn').addEventListener('click', () => {
+      const newSettings = {
+        theme: themeSelect.value,
+        font: fontSelect.value,
+        chartType: chartSelect.value,
+        accent: accentPicker.value
+      };
+
+      // Apply
+      document.body.classList.toggle('dark', newSettings.theme === 'dark');
+      applyFontSize(newSettings.font);
+      document.documentElement.style.setProperty('--accent', newSettings.accent);
+
+      // Recreate chart
+      previewChart.destroy();
+      previewChart = new Chart(ctx, {
+        type: newSettings.chartType,
+        data: {
+          labels: ['Food', 'Travel', 'Entertainment', 'Shopping'],
+          datasets: [{
+            data: [40, 25, 20, 15],
+            backgroundColor: colorSet
+          }]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+      });
+
+      localStorage.setItem('userSettings', JSON.stringify(newSettings));
+      alert('✅ Settings saved successfully!');
+    });
+  </script>
+</body>
+</html>
